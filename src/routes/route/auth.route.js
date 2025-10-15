@@ -1,10 +1,8 @@
 import express from 'express';
-import { register, updateUsername, getUserInfo } from '../../app/auth/user.controller.js';
+import { register } from '../../app/auth/user.controller.js';
 
 const router = express.Router();
 
-router.post('/user/register', register);
-router.patch('/user/:userId', updateUsername);
-router.get('/user/:userId', getUserInfo);
+router.post('/auth/register', register);
 
 export default router;

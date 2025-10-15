@@ -20,5 +20,13 @@
   },
   "devDependencies": {
     "prisma": "^6.16.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swifty-capstone/server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/swifty-capstone/server/issues"
+  },
+  "homepage": "https://github.com/swifty-capstone/server#readme"
 }
