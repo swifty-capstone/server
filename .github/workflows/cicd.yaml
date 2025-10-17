@@ -51,6 +51,6 @@ jobs:
             cd /home/ec2-user
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/rlarngus/capstone:latest
             docker stop rlarngus/capstone || true
-            docker rm rlarngus/capstone || true
+            docker rm rlarngus || true
             docker run -e DATABASE_URL=${{ secrets.DATABASE_HOST }} -d --name rlarngus -p 80:3000 ${{ secrets.DOCKERHUB_USERNAME }}/capstone:latest
           EOF
