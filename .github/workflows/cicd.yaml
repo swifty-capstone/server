@@ -36,7 +36,7 @@ jobs:
         run: docker push rlarngus/capstone:latest
 
   deploy:
-    needs: build
+    needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
