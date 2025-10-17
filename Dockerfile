@@ -6,8 +6,6 @@ COPY package*.json ./
 
 RUN npm install --production
 
-RUN npx prisma generate
-
 COPY . .
 
 EXPOSE 3000
