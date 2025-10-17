@@ -6,6 +6,8 @@ COPY package*.json ./
 
 RUN npm install --production
 
+COPY prisma ./prisma
+
 RUN npx prisma generate
 
 COPY . .
