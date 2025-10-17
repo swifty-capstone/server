@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -35,9 +35,22 @@ jobs:
       - name: Push Docker
         run: docker push rlarngus/capstone:latest
 
-      # - name: SSH
-      #   uses: webfactory/ssh-agent@v0.8.0
-      #   with:
-      #     ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
 
-      # - name: Deploy to EC2
+    steps:
+      - name: Add SSH key
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/ec2-user
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/rlarngus/capstone:latest
+            docker stop rlarngus/capstone || true
+            docker rm rlarngus/capstone || true
+            docker run -e DATABASE_URL=${{ secrets.DATABASE_HOST }} -d --name rlarngus -p 80:3000 ${{ secrets.DOCKERHUB_USERNAME }}/capstone:latest
+          EOF
