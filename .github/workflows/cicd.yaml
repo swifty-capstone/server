@@ -50,7 +50,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ec2-user
             docker pull rlarngus/capstone:latest
-            docker stop rlarngus/capstone || true
+            docker stop rlarngus || true
             docker rm rlarngus || true
             docker run -e DATABASE_URL=${{ secrets.DATABASE_HOST }} -d --name rlarngus -p 80:3000 ${{ secrets.DOCKERHUB_USERNAME }}/capstone:latest
           EOF
