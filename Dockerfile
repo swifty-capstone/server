@@ -9,9 +9,7 @@ COPY src/prisma ./src/prisma
 
 COPY src ./src
 
-RUN npx prisma --version \
- && npx prisma generate --schema=./src/prisma/schema.prisma \
- || (echo "Prisma generate failed." && exit 1)
+RUN npx prisma generate --schema=./src/prisma/schema.prisma
 
 EXPOSE 3000
 CMD ["npm", "start"]
