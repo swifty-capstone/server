@@ -22,4 +22,16 @@ model users {
   class          Int?
   grade          Int?
   createdAt      DateTime @default(now())
+  
+  refresh_tokens refresh_token[]
+}
+
+model refresh_token {
+  id              BigInt   @id @default(autoincrement())
+  user_id         Int
+  refresh_token   String
+  expiry_datetime DateTime
+  createdAt       DateTime @default(now())
+  
+  user            users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
