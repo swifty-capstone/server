@@ -52,5 +52,5 @@ jobs:
             docker pull rlarngus/capstone:latest
             docker stop rlarngus || true
             docker rm rlarngus || true
-            docker run -e DATABASE_URL=${{ secrets.DATABASE_HOST }} -d --name rlarngus -p 80:3000 ${{ secrets.DOCKERHUB_USERNAME }}/capstone:latest
+            docker run --network app-net  -e DATABASE_URL=${{ secrets.DATABASE_HOST }} -d --name rlarngus -p 80:3000 ${{ secrets.DOCKERHUB_USERNAME }}/capstone:latest
           EOF
