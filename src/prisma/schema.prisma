@@ -17,10 +17,10 @@ model users {
   id             Int      @id @default(autoincrement())
   student_id     String      @unique 
   password       String
-  name           String?
-  email          String?
-  class          Int?
-  grade          Int?
+  name           String
+  email          String
+  class          Int
+  grade          Int
   createdAt      DateTime @default(now())
   
   refresh_tokens refresh_token[]

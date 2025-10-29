@@ -7,6 +7,9 @@ const prisma = new PrismaClient();
 
 export async function registerUser({ student_id, password, name, email, class: userClass, grade }) {
   if (!student_id || !password) throw new HttpException(400, 'Student ID and password are required');
+  if (!name || !email || userClass == null || grade == null) {
+    throw new HttpException(400, 'name, email, class, grade are required');
+  }
 
   const existing = await prisma.users.findUnique({ where: { student_id: String(student_id) } });
   if (existing) throw new HttpException(400, 'Student ID already exists');
@@ -17,10 +20,10 @@ export async function registerUser({ student_id, password, name, email, class: u
     data: { 
       student_id: String(student_id), 
       password: hashedPassword,
-      name: name || null,
-      email: email || null,
-      class: userClass || null,
-      grade: grade || null
+      name: name,
+      email: email,
+      class: userClass,
+      grade: grade
     },
   });
 
