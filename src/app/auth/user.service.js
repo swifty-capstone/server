@@ -1,129 +1,182 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import HttpException from '../../utils/http/Exception.js';
-import { generateAccessToken, generateRefreshToken, getRefreshTokenExpiry } from '../../utils/token/jwt.js';
+import HttpException from '../../exception/HttpException.js';
+import { generateAccessToken, generateRefreshToken, getRefreshTokenExpiry } from '../../utils/jwt.js';
 
-const prisma = new PrismaClient();
-
-export async function registerUser({ student_id, password, name, email, class: userClass, grade }) {
-  if (!student_id || !password) throw new HttpException(400, 'Student ID and password are required');
-  if (!name || !email || userClass == null || grade == null) {
-    throw new HttpException(400, 'name, email, class, grade are required');
+class UserRepository {
+  constructor(database = new PrismaClient()) {
+    this.db = database;
   }
 
-  const existing = await prisma.users.findUnique({ where: { student_id: String(student_id) } });
-  if (existing) throw new HttpException(400, 'Student ID already exists');
+  async findByStudentId(studentId) {
+    return this.db.users.findUnique({ 
+      where: { student_id: String(studentId) } 
+    });
+  }
 
-  const hashedPassword = await bcrypt.hash(password, 12);
+  async createUser(userData) {
+    return this.db.users.create({ data: userData });
+  }
 
-  const user = await prisma.users.create({
-    data: { 
-      student_id: String(student_id), 
-      password: hashedPassword,
-      name: name,
-      email: email,
-      class: userClass,
-      grade: grade
-    },
-  });
+  async deleteRefreshTokensByUserId(userId) {
+    return this.db.refresh_token.deleteMany({
+      where: { user_id: userId }
+    });
+  }
 
-  return { 
-    id: user.id, 
-    student_id: user.student_id,
-    name: user.name,
-    email: user.email,
-    class: user.class,
-    grade: user.grade
-  };
+  async createRefreshToken(tokenData) {
+    return this.db.refresh_token.create({ data: tokenData });
+  }
+
+  async findValidRefreshToken(token) {
+    return this.db.refresh_token.findFirst({
+      where: {
+        refresh_token: token,
+        expiry_datetime: { gt: new Date() }
+      },
+      include: { user: true }
+    });
+  }
+
+  async deleteRefreshTokenById(id) {
+    return this.db.refresh_token.delete({ where: { id } });
+  }
 }
 
-export async function loginUser({ student_id, password }) {
-  if (!student_id || !password) throw new HttpException(400, 'Student ID and password are required');
+class PasswordService {
+  static async hash(password) {
+    return bcrypt.hash(password, 12);
+  }
 
-  const user = await prisma.users.findUnique({ 
-    where: { student_id: String(student_id) } 
-  });
-  
-  if (!user) throw new HttpException(401, 'Invalid credentials');
+  static async compare(password, hashedPassword) {
+    return bcrypt.compare(password, hashedPassword);
+  }
+}
 
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) throw new HttpException(401, 'Invalid credentials');
+class TokenService {
+  static generateTokens(user) {
+    const accessToken = generateAccessToken({
+      id: user.id,
+      student_id: user.student_id,
+      name: user.name
+    });
+    
+    const refreshToken = generateRefreshToken();
+    const expiryDatetime = getRefreshTokenExpiry();
 
-  await prisma.refresh_token.deleteMany({
-    where: { user_id: user.id }
-  });
+    return { accessToken, refreshToken, expiryDatetime };
+  }
+}
 
-  const accessToken = generateAccessToken({
-    id: user.id,
-    student_id: user.student_id,
-    name: user.name
-  });
-  
-  const refreshToken = generateRefreshToken();
-  const expiryDatetime = getRefreshTokenExpiry();
+export class UserService {
+  constructor(userRepository = new UserRepository()) {
+    this.userRepository = userRepository;
+  }
 
-  await prisma.refresh_token.create({
-    data: {
+  async registerUser(userData) {
+    const { student_id, password, name, email, class: userClass, grade } = userData;
+    
+    await this._validateUserNotExists(student_id);
+    
+    const hashedPassword = await PasswordService.hash(password);
+    
+    const user = await this.userRepository.createUser({
+      student_id: String(student_id),
+      password: hashedPassword,
+      name,
+      email,
+      class: userClass,
+      grade
+    });
+
+    return this._formatUserResponse(user);
+  }
+
+  async loginUser({ student_id, password }) {
+    const user = await this._validateUserCredentials(student_id, password);
+    
+    await this.userRepository.deleteRefreshTokensByUserId(user.id);
+    
+    const { accessToken, refreshToken, expiryDatetime } = TokenService.generateTokens(user);
+    
+    await this.userRepository.createRefreshToken({
       user_id: user.id,
       refresh_token: refreshToken,
       expiry_datetime: expiryDatetime
-    }
-  });
+    });
 
-  return {
-    user: {
+    return {
+      user: this._formatUserResponse(user),
+      accessToken,
+      refreshToken
+    };
+  }
+
+  async refreshAccessToken(refreshToken) {
+    const tokenRecord = await this._validateRefreshToken(refreshToken);
+    
+    await this.userRepository.deleteRefreshTokenById(tokenRecord.id);
+    
+    const { accessToken, refreshToken: newRefreshToken, expiryDatetime } = TokenService.generateTokens(tokenRecord.user);
+    
+    await this.userRepository.createRefreshToken({
+      user_id: tokenRecord.user.id,
+      refresh_token: newRefreshToken,
+      expiry_datetime: expiryDatetime
+    });
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken
+    };
+  }
+
+  async _validateUserNotExists(studentId) {
+    const existing = await this.userRepository.findByStudentId(studentId);
+    if (existing) {
+      throw new HttpException(400, 'Student ID already exists');
+    }
+  }
+
+  async _validateUserCredentials(studentId, password) {
+    const user = await this.userRepository.findByStudentId(studentId);
+    
+    if (!user) {
+      throw new HttpException(401, 'Invalid credentials');
+    }
+
+    const isPasswordValid = await PasswordService.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new HttpException(401, 'Invalid credentials');
+    }
+
+    return user;
+  }
+
+  async _validateRefreshToken(refreshToken) {
+    const tokenRecord = await this.userRepository.findValidRefreshToken(refreshToken);
+    
+    if (!tokenRecord) {
+      throw new HttpException(401, 'Invalid or expired refresh token');
+    }
+
+    return tokenRecord;
+  }
+
+  _formatUserResponse(user) {
+    return {
       id: user.id,
       student_id: user.student_id,
       name: user.name,
       email: user.email,
       class: user.class,
       grade: user.grade
-    },
-    accessToken,
-    refreshToken
-  };
+    };
+  }
 }
 
-export async function refreshAccessToken(refreshToken) {
-  if (!refreshToken) throw new HttpException(400, 'Refresh token is required');
+const userService = new UserService();
 
-  const tokenRecord = await prisma.refresh_token.findFirst({
-    where: {
-      refresh_token: refreshToken,
-      expiry_datetime: {
-        gt: new Date()
-      }
-    },
-    include: {
-      user: true
-    }
-  });
-
-  if (!tokenRecord) throw new HttpException(401, 'Invalid or expired refresh token');
-
-  await prisma.refresh_token.delete({
-    where: { id: tokenRecord.id }
-  });
-
-  const newAccessToken = generateAccessToken({
-    id: tokenRecord.user.id,
-    student_id: tokenRecord.user.student_id,
-    name: tokenRecord.user.name
-  });
-  
-  const newRefreshToken = generateRefreshToken();
-  const expiryDatetime = getRefreshTokenExpiry();
-
-  await prisma.refresh_token.create({
-    data: {
-      user_id: tokenRecord.user.id,
-      refresh_token: newRefreshToken,
-      expiry_datetime: expiryDatetime
-    }
-  });
-
-  return {
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken
-  };
-}
+export const registerUser = (userData) => userService.registerUser(userData);
+export const loginUser = (loginData) => userService.loginUser(loginData);
+export const refreshAccessToken = (refreshToken) => userService.refreshAccessToken(refreshToken);

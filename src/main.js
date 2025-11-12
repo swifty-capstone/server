@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import routes from './routes/routes.js';
-import HttpException from './utils/http/Exception.js';
+import HttpException from './exception/HttpException.js';
+import { errorResponse, successResponse } from './utils/response.js';
 import 'dotenv/config';
 
 const app = express();
@@ -12,22 +13,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use(routes);
 
 app.get('/', (_, res) => {
-    res.json({ "health": "ok" });
+    return successResponse(res, 200, { health: 'ok' }, 'Server is healthy');
 });
 
 app.use((err, req, res, next) => {
+  console.error('Error occurred:', err);
+  
   if (err && err.name === 'UnauthorizedError') {
-    return res.status(401).json({
-      status: 'error',
-      message: 'missing authorization credentials',
-    });
-
-  } else if (err instanceof HttpException) {
-    res.status(err.errorCode).json({ message: err.message });
-
-  } else if (err) {
-    res.status(500).json({ message: err.message });
-  }
+    return errorResponse(res, 401, 'Missing authorization credentials');
+  } 
+  
+  if (err instanceof HttpException) {
+    return errorResponse(res, err.statusCode, err.message);
+  } 
+  
+  return errorResponse(res, 500, 'Internal server error');
 });
 
 const PORT = process.env.PORT || 3000;
