@@ -58,7 +58,8 @@ class TokenService {
     const accessToken = generateAccessToken({
       id: user.id,
       student_id: user.student_id,
-      name: user.name
+      name: user.name,
+      role: user.role
     });
     
     const refreshToken = generateRefreshToken();
@@ -73,9 +74,10 @@ export class UserService {
     this.userRepository = userRepository;
   }
 
-  async registerUser(userData) {
-    const { student_id, password, name, email, class: userClass, grade } = userData;
+  async registerUser(userData, adminUser = null) {
+    const { student_id, password, name, email, class: userClass, grade, role } = userData;
     
+    this._validateRegistrationPermission(role, adminUser);
     await this._validateUserNotExists(student_id);
     
     const hashedPassword = await PasswordService.hash(password);
@@ -86,7 +88,8 @@ export class UserService {
       name,
       email,
       class: userClass,
-      grade
+      grade,
+      role: role || 'USER'
     });
 
     return this._formatUserResponse(user);
@@ -170,13 +173,24 @@ export class UserService {
       name: user.name,
       email: user.email,
       class: user.class,
-      grade: user.grade
+      grade: user.grade,
+      role: user.role
     };
+  }
+
+  _validateRegistrationPermission(role, adminUser) {
+    if (role === 'ADMIN' && (!adminUser || adminUser.role !== 'ADMIN')) {
+      throw new HttpException(403, 'Only admin can create admin accounts');
+    }
+    
+    if (!adminUser || adminUser.role !== 'ADMIN') {
+      throw new HttpException(403, 'Only admin can create user accounts');
+    }
   }
 }
 
 const userService = new UserService();
 
-export const registerUser = (userData) => userService.registerUser(userData);
+export const registerUser = (userData, adminUser) => userService.registerUser(userData, adminUser);
 export const loginUser = (loginData) => userService.loginUser(loginData);
 export const refreshAccessToken = (refreshToken) => userService.refreshAccessToken(refreshToken);

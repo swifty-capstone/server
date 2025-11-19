@@ -15,7 +15,8 @@ export function generateAccessToken(userData) {
     jti: crypto.randomUUID(),
     id: userData.id,
     student_id: userData.student_id,
-    name: userData.name
+    name: userData.name,
+    role: userData.role
   }, JWT_SECRET, { 
     expiresIn: ACCESS_TOKEN_EXPIRY
   });

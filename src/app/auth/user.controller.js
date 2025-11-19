@@ -1,6 +1,7 @@
 import { UserService } from './user.service.js';
 import { successResponse } from '../../utils/response.js';
 import ValidationException from '../../exception/ValidationException.js';
+import ForbiddenException from '../../exception/ForbiddenException.js';
 
 class UserController {
   constructor(userService = new UserService()) {
@@ -11,7 +12,8 @@ class UserController {
   async register(req, res, next) {
     try {
       const userData = this._validateRegisterData(req.body);
-      const user = await this.userService.registerUser(userData);
+      const adminUser = req.user;
+      const user = await this.userService.registerUser(userData, adminUser);
       return successResponse(res, 201, user, 'User registered successfully');
     } catch (error) {
       next(error);
@@ -45,7 +47,7 @@ class UserController {
   }
 
   _validateRegisterData(body) {
-    const { student_id, password, name, email, class: userClass, grade } = body;
+    const { student_id, password, name, email, class: userClass, grade, role } = body;
     
     if (!student_id || !password) {
       throw new ValidationException('Student ID and password are required');
@@ -54,7 +56,7 @@ class UserController {
       throw new ValidationException('Name, email, class, and grade are required');
     }
 
-    return { student_id, password, name, email, class: userClass, grade };
+    return { student_id, password, name, email, class: userClass, grade, role };
   }
 
   _validateLoginData(body) {

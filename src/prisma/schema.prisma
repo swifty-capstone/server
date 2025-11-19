@@ -13,6 +13,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum Role {
+  ADMIN
+  USER
+}
+
 model users {
   id             Int      @id @default(autoincrement())
   student_id     String      @unique 
@@ -21,6 +26,7 @@ model users {
   email          String
   class          Int
   grade          Int
+  role           Role     @default(USER)
   createdAt      DateTime @default(now())
   
   refresh_tokens refresh_token[]
