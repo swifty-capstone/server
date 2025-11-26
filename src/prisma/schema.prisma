@@ -30,6 +30,7 @@ model users {
   createdAt      DateTime @default(now())
   
   refresh_tokens refresh_token[]
+  outing_requests outing_request[]
 }
 
 model refresh_token {
@@ -40,4 +41,16 @@ model refresh_token {
   createdAt       DateTime @default(now())
   
   user            users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model outing_request {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  start_time  DateTime
+  end_time    DateTime
+  reason      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
