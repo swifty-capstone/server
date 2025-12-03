@@ -33,7 +33,16 @@ class OutingController {
 
   async getAllOutingRequests(req, res, next) {
     try {
-      const requests = await this.outingService.getAllOutingRequests();
+      const userRole = req.user.role;
+      const userId = req.user.id;
+      
+      let requests;
+      if (userRole === 'ADMIN') {
+        requests = await this.outingService.getAllOutingRequests();
+      } else {
+        requests = await this.outingService.getUserOutingRequests(userId);
+      }
+      
       return successResponse(res, 200, requests, 'Outing requests retrieved successfully');
     } catch (error) {
       next(error);

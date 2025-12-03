@@ -66,6 +66,13 @@ export class OutingService {
     });
   }
 
+  async getUserOutingRequests(userId) {
+    return await this.prisma.outing_request.findMany({
+      where: { user_id: userId },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
   async updateOutingStatus(requestId, status) {
     const existingRequest = await this.prisma.outing_request.findUnique({
       where: { id: requestId }

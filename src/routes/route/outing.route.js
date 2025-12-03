@@ -43,14 +43,14 @@ router.post('/outing', authenticateToken, createOutingRequest);
  * @swagger
  * /outing:
  *   get:
- *     summary: Get all outing requests (Admin only)
+ *     summary: Get outing requests (Admin: all requests, User: own requests)
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Outing requests retrieved successfully
  */
-router.get('/outing', authenticateToken, requireAdmin, getAllOutingRequests);
+router.get('/outing', authenticateToken, getAllOutingRequests);
 
 /**
  * @swagger
