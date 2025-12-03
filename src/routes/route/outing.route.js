@@ -1,6 +1,6 @@
 import express from 'express';
-import { createOutingRequest, updateOutingRequest } from '../../app/outing/outing.controller.js';
-import { authenticateToken } from '../../middleware/authMiddleware.js';
+import { createOutingRequest, updateOutingRequest, getAllOutingRequests, updateOutingStatus } from '../../app/outing/outing.controller.js';
+import { authenticateToken, requireAdmin } from '../../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -41,6 +41,19 @@ router.post('/outing', authenticateToken, createOutingRequest);
 
 /**
  * @swagger
+ * /outing:
+ *   get:
+ *     summary: Get all outing requests (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Outing requests retrieved successfully
+ */
+router.get('/outing', authenticateToken, requireAdmin, getAllOutingRequests);
+
+/**
+ * @swagger
  * /outing/{id}:
  *   put:
  *     summary: Update outing request
@@ -74,5 +87,39 @@ router.post('/outing', authenticateToken, createOutingRequest);
  *         description: Outing request not found
  */
 router.put('/outing/:id', authenticateToken, updateOutingRequest);
+
+/**
+ * @swagger
+ * /outing/{id}/status:
+ *   put:
+ *     summary: Update outing request status (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [PENDING, APPROVED, REJECTED]
+ *     responses:
+ *       200:
+ *         description: Outing status updated successfully
+ *       404:
+ *         description: Outing request not found
+ */
+router.put('/outing/:id/status', authenticateToken, requireAdmin, updateOutingStatus);
+
 
 export default router;

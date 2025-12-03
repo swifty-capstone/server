@@ -31,9 +31,31 @@ class OutingController {
     }
   }
 
+  async getAllOutingRequests(req, res, next) {
+    try {
+      const requests = await this.outingService.getAllOutingRequests();
+      return successResponse(res, 200, requests, 'Outing requests retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateOutingStatus(req, res, next) {
+    try {
+      const requestId = parseInt(req.params.id);
+      const { status } = this._validateStatusData(req.body);
+      const request = await this.outingService.updateOutingStatus(requestId, status);
+      return successResponse(res, 200, request, 'Outing status updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   _bindMethods() {
     this.createOutingRequest = this.createOutingRequest.bind(this);
     this.updateOutingRequest = this.updateOutingRequest.bind(this);
+    this.getAllOutingRequests = this.getAllOutingRequests.bind(this);
+    this.updateOutingStatus = this.updateOutingStatus.bind(this);
   }
 
   _validateOutingData(body) {
@@ -55,9 +77,21 @@ class OutingController {
 
     return { start_time, end_time, reason };
   }
+
+  _validateStatusData(body) {
+    const { status } = body;
+    
+    if (!status || !['PENDING', 'APPROVED', 'REJECTED'].includes(status)) {
+      throw new ValidationException('Valid status is required (PENDING, APPROVED, REJECTED)');
+    }
+
+    return { status };
+  }
 }
 
 const outingController = new OutingController();
 
 export const createOutingRequest = outingController.createOutingRequest;
 export const updateOutingRequest = outingController.updateOutingRequest;
+export const getAllOutingRequests = outingController.getAllOutingRequests;
+export const updateOutingStatus = outingController.updateOutingStatus;

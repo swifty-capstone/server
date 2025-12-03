@@ -26,7 +26,11 @@ app.use((err, req, res, next) => {
   
   if (err && err.name === 'UnauthorizedError') {
     return errorResponse(res, 401, 'Missing authorization credentials');
-  } 
+  }
+  
+  if (err.type === 'entity.parse.failed') {
+    return errorResponse(res, 400, 'Invalid JSON format');
+  }
   
   if (err instanceof HttpException) {
     return errorResponse(res, err.statusCode, err.message);

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `outing_request` ADD COLUMN `status` ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING';

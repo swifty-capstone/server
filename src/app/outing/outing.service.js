@@ -48,4 +48,36 @@ export class OutingService {
       }
     });
   }
+
+  async getAllOutingRequests() {
+    return await this.prisma.outing_request.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            student_id: true,
+            name: true,
+            class: true,
+            grade: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async updateOutingStatus(requestId, status) {
+    const existingRequest = await this.prisma.outing_request.findUnique({
+      where: { id: requestId }
+    });
+
+    if (!existingRequest) {
+      throw new HttpException(404, 'Outing request not found');
+    }
+
+    return await this.prisma.outing_request.update({
+      where: { id: requestId },
+      data: { status }
+    });
+  }
 }

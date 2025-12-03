@@ -18,6 +18,12 @@ enum Role {
   USER
 }
 
+enum OutingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model users {
   id             Int      @id @default(autoincrement())
   student_id     String      @unique 
@@ -44,13 +50,14 @@ model refresh_token {
 }
 
 model outing_request {
-  id          Int      @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   user_id     Int
   start_time  DateTime
   end_time    DateTime
   reason      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      OutingStatus  @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   
-  user        users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user        users         @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
